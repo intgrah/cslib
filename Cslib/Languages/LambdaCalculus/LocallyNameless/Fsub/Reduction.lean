@@ -113,6 +113,52 @@ lemma Red.lc {t t' : Term Var} (red : t ⭢βᵛ t') : t.LC ∧ t'.LC := by
         substTy_lc, openTm_substTm_intro, openTy_substTy_intro]
   all_goals grind
 
+/-- A reduction out of a left injection is a left injection of a reduct of the payload. -/
+lemma Red.inl_inv {v t' : Term Var} (r : Term.inl v ⭢βᵛ t') :
+    ∃ v', t' = Term.inl v' ∧ v ⭢βᵛ v' := by
+  cases r with
+  | inl r => exact ⟨_, rfl, r⟩
+
+/-- A reduction out of a right injection is a right injection of a reduct of the payload. -/
+lemma Red.inr_inv {v t' : Term Var} (r : Term.inr v ⭢βᵛ t') :
+    ∃ v', t' = Term.inr v' ∧ v ⭢βᵛ v' := by
+  cases r with
+  | inr r => exact ⟨_, rfl, r⟩
+
+/-- A left injection only reduces to left injections, tracking the payload reduction. -/
+lemma Red.inl_star_shape {e e' : Term Var} (hred : e ↠βᵛ e') :
+    ∀ {s : Term Var}, e = Term.inl s → ∃ v, e' = Term.inl v ∧ s ↠βᵛ v := by
+  induction hred with
+  | refl => intro s rfl; exact ⟨s, rfl, .refl⟩
+  | tail hbc r ih =>
+    intro s he
+    obtain ⟨w, rfl, hsw⟩ := ih he
+    obtain ⟨w', rfl, rw⟩ := Red.inl_inv r
+    exact ⟨w', rfl, hsw.tail rw⟩
+
+/-- Reduction of a left injection (to another left injection) reduces the payload. -/
+lemma Red.inl_star_inv {s v : Term Var} (hred : Term.inl s ↠βᵛ Term.inl v) : s ↠βᵛ v := by
+  have ⟨w, hw, hsw⟩ := Red.inl_star_shape hred rfl
+  cases hw
+  exact hsw
+
+/-- A right injection only reduces to right injections, tracking the payload reduction. -/
+lemma Red.inr_star_shape {e e' : Term Var} (hred : e ↠βᵛ e') :
+    ∀ {s : Term Var}, e = Term.inr s → ∃ v, e' = Term.inr v ∧ s ↠βᵛ v := by
+  induction hred with
+  | refl => intro s rfl; exact ⟨s, rfl, .refl⟩
+  | tail hbc r ih =>
+    intro s he
+    obtain ⟨w, rfl, hsw⟩ := ih he
+    obtain ⟨w', rfl, rw⟩ := Red.inr_inv r
+    exact ⟨w', rfl, hsw.tail rw⟩
+
+/-- Reduction of a right injection (to another right injection) reduces the payload. -/
+lemma Red.inr_star_inv {s v : Term Var} (hred : Term.inr s ↠βᵛ Term.inr v) : s ↠βᵛ v := by
+  obtain ⟨w, hw, hsw⟩ := Red.inr_star_shape hred rfl
+  cases hw
+  exact hsw
+
 end Term
 
 end LambdaCalculus.LocallyNameless.Fsub
